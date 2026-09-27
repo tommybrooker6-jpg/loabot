@@ -23,7 +23,14 @@ function writeDb(db) {
 function ensureGuild(db, guildId) {
   if (!db.guilds[guildId]) {
     db.guilds[guildId] = {
-      config: { staffRoles: [], approverRoles: [], loaRole: null, reviewChannel: null },
+      config: {
+        staffRoles: [],
+        approverRoles: [],
+        loaRole: null,
+        reviewChannel: null,
+        logChannel: null,
+        boardMessageId: null,
+      },
       requests: [],
     };
   }
@@ -67,6 +74,13 @@ function updateRequest(guildId, requestId, partial) {
   return req;
 }
 
+// Currently-active LOAs for one server (used to render the live board).
+function getActiveRequests(guildId) {
+  const db = readDb();
+  const guild = ensureGuild(db, guildId);
+  return guild.requests.filter((r) => r.status === 'approved');
+}
+
 // Used by the expiry scheduler to find approved LOAs across every server.
 function getAllActiveRequests() {
   const db = readDb();
@@ -85,5 +99,6 @@ module.exports = {
   addRequest,
   getRequest,
   updateRequest,
+  getActiveRequests,
   getAllActiveRequests,
 };

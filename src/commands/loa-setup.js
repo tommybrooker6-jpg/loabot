@@ -32,6 +32,10 @@ function buildSetupMessage(guildId) {
         name: 'Review channel (requests posted here)',
         value: config.reviewChannel ? `<#${config.reviewChannel}>` : '*Not set*',
       },
+      {
+        name: 'Log channel (active board + approval history)',
+        value: config.logChannel ? `<#${config.logChannel}>` : '*Not set*',
+      },
     )
     .setColor(0x9146ff)
     .setFooter({ text: 'Only members with Manage Server can run this command.' });
@@ -65,8 +69,16 @@ function buildSetupMessage(guildId) {
       .setMinValues(1)
       .setMaxValues(1),
   );
+  const logChannelRow = new ActionRowBuilder().addComponents(
+    new ChannelSelectMenuBuilder()
+      .setCustomId('loa_setup_log_channel')
+      .setPlaceholder('Select the channel for the active-LOA board + approval log')
+      .addChannelTypes(ChannelType.GuildText)
+      .setMinValues(1)
+      .setMaxValues(1),
+  );
 
-  return { embeds: [embed], components: [staffRow, approverRow, loaRoleRow, channelRow] };
+  return { embeds: [embed], components: [staffRow, approverRow, loaRoleRow, channelRow, logChannelRow] };
 }
 
 module.exports = {

@@ -5,8 +5,10 @@ A self-contained Discord bot that runs the whole LOA (Leave of Absence) workflow
 1. Staff with an allowed role click **Request LOA** on a panel you post.
 2. They fill in **Start Date**, **End Date**, and **Reason** in a popup form.
 3. The request is posted in a review channel with **Approve** / **Deny** buttons that only your approver roles can use.
-4. On approval, the requester is automatically given the **LOA** role.
-5. When the end date passes, the bot automatically removes the LOA role and posts a note in the review channel.
+4. On approval, the requester is automatically given the **LOA** role, the request disappears from the review channel, and two things happen in your log channel:
+   - A pinned **Active LOAs** board (one message, always edited in place) updates to show who's currently out and until when.
+   - A permanent, never-edited log entry is posted recording who requested it, who approved it, the dates, duration, and reason.
+5. When the end date passes, the bot automatically removes the LOA role and updates the active board (count goes back down).
 
 Everything — which roles can request, which roles can approve, and which role gets assigned — is configured live in Discord via `/loa-setup`, no code editing required.
 
@@ -21,7 +23,7 @@ Everything — which roles can request, which roles can approve, and which role 
 
 Under **OAuth2 → URL Generator**, select:
 - Scopes: `bot`, `applications.commands`
-- Bot permissions: `Manage Roles`, `Send Messages`, `Embed Links`, `Use Application Commands`
+- Bot permissions: `Manage Roles`, `Send Messages`, `Embed Links`, `Use Application Commands`, `Manage Messages` (needed to pin the active-LOA board)
 
 Open the generated URL and add the bot to your server.
 
@@ -54,6 +56,7 @@ npm start
   - Select the role(s) allowed to **approve/deny** an LOA
   - Select the **LOA** role to assign on approval
   - Select the **channel** where requests get posted for review
+  - Select the **channel** for the active-LOA board + permanent approval log
   Each selection saves immediately — re-run `/loa-setup` any time to change them.
 - Run **`/loa-panel`** in whichever channel staff should see the request button. This posts the public embed with the **Request LOA** button.
 

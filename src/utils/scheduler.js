@@ -1,4 +1,5 @@
 const storage = require('../storage');
+const { updateActiveBoard } = require('./board');
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -21,6 +22,7 @@ async function runExpiryCheck(client) {
       }
 
       storage.updateRequest(req.guildId, req.id, { status: 'completed' });
+      await updateActiveBoard(guild, config);
 
       if (config.reviewChannel) {
         const channel = await guild.channels.fetch(config.reviewChannel).catch(() => null);

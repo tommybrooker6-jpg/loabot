@@ -10,6 +10,7 @@ const {
 const storage = require('../storage');
 const { memberHasAnyRole } = require('../utils/permissions');
 const { buildSetupMessage } = require('../commands/loa-setup');
+const { updateActiveBoard, logApproval } = require('../utils/board');
 
 function isValidDate(str) {
   return /^\d{4}-\d{2}-\d{2}$/.test(str) && !Number.isNaN(new Date(str).getTime());
@@ -38,6 +39,9 @@ module.exports = async function interactionCreate(interaction, client) {
           break;
         case 'loa_setup_review_channel':
           storage.updateConfig(interaction.guildId, { reviewChannel: interaction.values[0] });
+          break;
+        case 'loa_setup_log_channel':
+          storage.updateConfig(interaction.guildId, { logChannel: interaction.values[0] });
           break;
         default:
           return;
@@ -173,20 +177,28 @@ module.exports = async function interactionCreate(interaction, client) {
       });
 
       const member = await interaction.guild.members.fetch(request.userId).catch(() => null);
-      if (isApprove && member && config.loaRole) {
-        await member.roles.add(config.loaRole).catch(() => null);
+
+      if (isApprove) {
+        if (member && config.loaRole) {
+          await member.roles.add(config.loaRole).catch(() => null);
+        }
+        const approvedRequest = storage.getRequest(interaction.guildId, requestId);
+        await logApproval(interaction.guild, config, approvedRequest, interaction.user.id);
+        await updateActiveBoard(interaction.guild, config);
+        // Approved requests are cleared out of the review channel entirely.
+        await interaction.deferUpdate();
+        await interaction.message.delete().catch(() => null);
+      } else {
+        const original = interaction.message.embeds[0];
+        const updatedEmbed = EmbedBuilder.from(original)
+          .setColor(0xe74c3c)
+          .spliceFields(1, 1, {
+            name: 'Status',
+            value: `🔴 Denied by <@${interaction.user.id}>`,
+            inline: true,
+          });
+        await interaction.update({ embeds: [updatedEmbed], components: [] });
       }
-
-      const original = interaction.message.embeds[0];
-      const updatedEmbed = EmbedBuilder.from(original)
-        .setColor(isApprove ? 0x2ecc71 : 0xe74c3c)
-        .spliceFields(1, 1, {
-          name: 'Status',
-          value: isApprove ? `🟢 Approved by <@${interaction.user.id}>` : `🔴 Denied by <@${interaction.user.id}>`,
-          inline: true,
-        });
-
-      await interaction.update({ embeds: [updatedEmbed], components: [] });
 
       if (member) {
         member
