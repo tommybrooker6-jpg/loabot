@@ -109,7 +109,7 @@ async function logCompletion(guild, config, request, endedEarly) {
 }
 
 // One permanent, never-edited entry per denial — kept in the log channel, not the review channel.
-async function logDenial(guild, config, request, reviewerId) {
+async function logDenial(guild, config, request, reviewerId, denyReason) {
   if (!config.logChannel) return;
   const channel = await guild.channels.fetch(config.logChannel).catch(() => null);
   if (!channel) return;
@@ -124,7 +124,8 @@ async function logDenial(guild, config, request, reviewerId) {
       { name: 'Start Date', value: formatDMY(request.startDate), inline: true },
       { name: 'End Date', value: formatDMY(request.endDate), inline: true },
       { name: '\u200B', value: '\u200B', inline: true },
-      { name: 'Reason', value: request.reason },
+      { name: 'Reason for LOA', value: request.reason },
+      { name: 'Denial Reason', value: denyReason || 'No reason given' },
     )
     .setTimestamp();
 

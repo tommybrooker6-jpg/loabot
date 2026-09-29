@@ -74,6 +74,15 @@ function updateRequest(guildId, requestId, partial) {
   return req;
 }
 
+// Full history for one user (all statuses), newest first — powers /loa-history.
+function getRequestsForUser(guildId, userId) {
+  const db = readDb();
+  const guild = ensureGuild(db, guildId);
+  return guild.requests
+    .filter((r) => r.userId === userId)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
 // Currently-active LOAs for one server (used to render the live board).
 function getActiveRequests(guildId) {
   const db = readDb();
@@ -99,6 +108,7 @@ module.exports = {
   addRequest,
   getRequest,
   updateRequest,
+  getRequestsForUser,
   getActiveRequests,
   getAllActiveRequests,
 };

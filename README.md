@@ -5,12 +5,11 @@ A self-contained Discord bot that runs the whole LOA (Leave of Absence) workflow
 1. Staff with an allowed role click **Request LOA** on a panel you post.
 2. They fill in **Start Date**, **End Date**, and **Reason** in a popup form.
 3. The request is posted in a review channel with **Approve** / **Deny** buttons that only your approver roles can use — the message pings just those roles.
-4. Both **Approve** and **Deny** clear the request out of the review channel immediately (nothing sits around after a decision). On approval, the requester is also given the **LOA** role, and two things happen in your log channel:
-   - A pinned **Active LOAs** board (one message, always edited in place) updates to show who's currently out and until when.
-   - A permanent, never-edited **✅ LOA Approved** log entry is posted with who requested it, who approved it, the dates, duration, and reason.
-   A denial posts its own permanent **❌ LOA Denied** entry in the same log channel instead — the review channel stays purely for pending requests.
-5. When the end date passes, the bot automatically removes the LOA role, updates the active board (count goes back down), and posts a **🏁 LOA Completed** log entry — including both the originally requested duration and the *actual* time they held the LOA role (from the moment they were approved to the moment the role came off), so early endings don't get counted as the full requested length.
-6. If a staff member's LOA role is instead removed manually (by an admin dragging it off in Discord, rather than waiting it out), the bot notices immediately and ends that LOA right then — same board update and completion log, marked "Ended early," with the actual (shorter) time tracked accurately.
+4. **Approve** clears the request out of the review channel immediately, gives the requester the **LOA** role, and logs a permanent **✅ LOA Approved** entry. **Deny** first pops up a small form asking the approver for an (optional) reason, then clears the request and logs a **❌ LOA Denied** entry with that reason — the requester gets DMed the reason too.
+5. Two things happen in the log channel throughout: a pinned **Active LOAs** board (one message, always edited in place) shows who's currently out, and every decision/completion gets its own permanent entry — nothing sits around in the review channel after a decision.
+6. When the end date passes, the bot automatically removes the LOA role, updates the active board, and posts a **🏁 LOA Completed** log entry — including both the originally requested duration and the *actual* time they held the LOA role (from approval to role removal), so early endings don't get counted as the full requested length.
+7. If a staff member's LOA role is instead removed manually (an admin dragging it off in Discord, rather than waiting it out), the bot notices immediately and ends that LOA right then — same board update and completion log, marked "Ended early," with the actual (shorter) time tracked accurately.
+8. Anyone can run **`/loa-history`** to see their own past requests (dates, status, reason, actual time served); approvers can look up anyone else's with `/loa-history @user`.
 
 Everything — which roles can request, which roles can approve, and which role gets assigned — is configured live in Discord via `/loa-setup`, no code editing required.
 
@@ -61,6 +60,7 @@ npm start
   - Select the **channel** for the active-LOA board + permanent approval log
   Each selection saves immediately — re-run `/loa-setup` any time to change them.
 - Run **`/loa-panel`** in whichever channel staff should see the request button. This posts the public embed with the **Request LOA** button.
+- Run **`/loa-history`** any time to check LOA history — no setup needed. Everyone can check their own; approver roles can also check anyone else's with `/loa-history @user`.
 
 From there the flow is fully automatic: request → review channel → approve/deny → role granted → auto-removed when the LOA ends.
 
