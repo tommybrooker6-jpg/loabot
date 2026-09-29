@@ -1,5 +1,5 @@
 const storage = require('../storage');
-const { updateActiveBoard } = require('./board');
+const { updateActiveBoard, logCompletion } = require('./board');
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -23,15 +23,7 @@ async function runExpiryCheck(client) {
 
       storage.updateRequest(req.guildId, req.id, { status: 'completed' });
       await updateActiveBoard(guild, config);
-
-      if (config.reviewChannel) {
-        const channel = await guild.channels.fetch(config.reviewChannel).catch(() => null);
-        if (channel) {
-          channel
-            .send(`ℹ️ <@${req.userId}>'s LOA ended on **${req.endDate}** — the LOA role has been removed.`)
-            .catch(() => null);
-        }
-      }
+      await logCompletion(guild, config, req, false);
     } catch (err) {
       console.error(`Expiry check failed for request ${req.id}:`, err);
     }

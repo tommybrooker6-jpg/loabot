@@ -73,4 +73,31 @@ async function logApproval(guild, config, request, reviewerId) {
   await channel.send({ embeds: [embed] }).catch(() => null);
 }
 
-module.exports = { updateActiveBoard, logApproval };
+// One permanent, never-edited entry when an LOA finishes — either on schedule or ended early.
+async function logCompletion(guild, config, request, endedEarly) {
+  if (!config.logChannel) return;
+  const channel = await guild.channels.fetch(config.logChannel).catch(() => null);
+  if (!channel) return;
+
+  const embed = new EmbedBuilder()
+    .setTitle('🏁 LOA Completed')
+    .setColor(0x95a5a6)
+    .addFields(
+      { name: 'Staff Member', value: `<@${request.userId}>`, inline: true },
+      { name: 'Approved By', value: request.reviewedBy ? `<@${request.reviewedBy}>` : 'Unknown', inline: true },
+      { name: '\u200B', value: '\u200B', inline: true },
+      { name: 'Start Date', value: request.startDate, inline: true },
+      { name: 'End Date', value: request.endDate, inline: true },
+      { name: 'Duration', value: `${daysBetween(request.startDate, request.endDate)} day(s)`, inline: true },
+      { name: 'Reason', value: request.reason },
+      {
+        name: 'Ended',
+        value: endedEarly ? '⏹️ Early — LOA role removed manually' : '✅ On schedule (end date reached)',
+      },
+    )
+    .setTimestamp();
+
+  await channel.send({ embeds: [embed] }).catch(() => null);
+}
+
+module.exports = { updateActiveBoard, logApproval, logCompletion };

@@ -8,7 +8,8 @@ A self-contained Discord bot that runs the whole LOA (Leave of Absence) workflow
 4. On approval, the requester is automatically given the **LOA** role, the request disappears from the review channel, and two things happen in your log channel:
    - A pinned **Active LOAs** board (one message, always edited in place) updates to show who's currently out and until when.
    - A permanent, never-edited log entry is posted recording who requested it, who approved it, the dates, duration, and reason.
-5. When the end date passes, the bot automatically removes the LOA role and updates the active board (count goes back down).
+5. When the end date passes, the bot automatically removes the LOA role, updates the active board (count goes back down), and posts a **🏁 LOA Completed** log entry with the full details and how it ended.
+6. If a staff member's LOA role is instead removed manually (by an admin dragging it off in Discord, rather than waiting it out), the bot notices immediately and ends that LOA right then — same board update and completion log, marked "Ended early."
 
 Everything — which roles can request, which roles can approve, and which role gets assigned — is configured live in Discord via `/loa-setup`, no code editing required.
 

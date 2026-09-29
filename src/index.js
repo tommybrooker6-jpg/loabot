@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const interactionCreate = require('./handlers/interactionCreate');
+const guildMemberUpdate = require('./handlers/guildMemberUpdate');
 const { startLoaExpiryCheck } = require('./utils/scheduler');
 
 const client = new Client({
@@ -22,5 +23,6 @@ client.once('ready', () => {
 });
 
 client.on('interactionCreate', (interaction) => interactionCreate(interaction, client));
+client.on('guildMemberUpdate', guildMemberUpdate);
 
 client.login(process.env.DISCORD_TOKEN);

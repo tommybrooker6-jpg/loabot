@@ -146,8 +146,17 @@ module.exports = async function interactionCreate(interaction, client) {
         new ButtonBuilder().setCustomId(`loa_deny_${request.id}`).setLabel('Deny').setStyle(ButtonStyle.Danger),
       );
 
+      const approverMentions = config.approverRoles.map((id) => `<@&${id}>`).join(' ');
+
       const channel = await interaction.guild.channels.fetch(config.reviewChannel).catch(() => null);
-      if (channel) await channel.send({ embeds: [embed], components: [row] });
+      if (channel) {
+        await channel.send({
+          content: `${approverMentions} — new LOA request awaiting review`,
+          embeds: [embed],
+          components: [row],
+          allowedMentions: { roles: config.approverRoles }, // pings the approver roles even if they aren't set to "mentionable"
+        });
+      }
 
       return interaction.reply({ content: '✅ Your LOA request has been submitted for review.', ephemeral: true });
     }
@@ -197,7 +206,7 @@ module.exports = async function interactionCreate(interaction, client) {
             value: `🔴 Denied by <@${interaction.user.id}>`,
             inline: true,
           });
-        await interaction.update({ embeds: [updatedEmbed], components: [] });
+        await interaction.update({ content: '', embeds: [updatedEmbed], components: [] });
       }
 
       if (member) {
