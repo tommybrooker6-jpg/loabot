@@ -13,14 +13,15 @@ module.exports = async function guildMemberUpdate(oldMember, newMember) {
     const active = storage.getActiveRequests(newMember.guild.id).find((r) => r.userId === newMember.id);
     if (!active) return; // role was removed but there's no bot-tracked LOA to close out
 
+    const endedAt = new Date().toISOString();
     storage.updateRequest(newMember.guild.id, active.id, {
       status: 'completed',
       endedEarly: true,
-      endedAt: new Date().toISOString(),
+      endedAt,
     });
 
     await updateActiveBoard(newMember.guild, config);
-    await logCompletion(newMember.guild, config, active, true);
+    await logCompletion(newMember.guild, config, { ...active, endedAt }, true);
   } catch (err) {
     console.error('guildMemberUpdate (LOA) error:', err);
   }

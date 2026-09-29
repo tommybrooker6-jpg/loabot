@@ -21,9 +21,10 @@ async function runExpiryCheck(client) {
         await member.roles.remove(config.loaRole).catch(() => null);
       }
 
-      storage.updateRequest(req.guildId, req.id, { status: 'completed' });
+      const endedAt = new Date().toISOString();
+      storage.updateRequest(req.guildId, req.id, { status: 'completed', endedAt });
       await updateActiveBoard(guild, config);
-      await logCompletion(guild, config, req, false);
+      await logCompletion(guild, config, { ...req, endedAt }, false);
     } catch (err) {
       console.error(`Expiry check failed for request ${req.id}:`, err);
     }

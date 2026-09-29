@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const storage = require('../storage');
-const { formatDMY } = require('./dates');
+const { formatDMY, humanDuration } = require('./dates');
 
 function daysBetween(start, end) {
   const ms = new Date(end) - new Date(start);
@@ -89,8 +89,15 @@ async function logCompletion(guild, config, request, endedEarly) {
       { name: '\u200B', value: '\u200B', inline: true },
       { name: 'Start Date', value: formatDMY(request.startDate), inline: true },
       { name: 'End Date', value: formatDMY(request.endDate), inline: true },
-      { name: 'Duration', value: `${daysBetween(request.startDate, request.endDate)} day(s)`, inline: true },
+      { name: 'Duration Requested', value: `${daysBetween(request.startDate, request.endDate)} day(s)`, inline: true },
       { name: 'Reason', value: request.reason },
+      {
+        name: 'Actual Time on LOA',
+        value: request.reviewedAt
+          ? humanDuration(request.reviewedAt, request.endedAt || new Date().toISOString())
+          : 'Unknown',
+        inline: true,
+      },
       {
         name: 'Ended',
         value: endedEarly ? '⏹️ Early — LOA role removed manually' : '✅ On schedule (end date reached)',

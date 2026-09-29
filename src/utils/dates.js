@@ -23,4 +23,21 @@ function formatDMY(isoDate) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-module.exports = { parseDMY, formatDMY };
+// Formats the elapsed time between two ISO timestamps as e.g. "7d 3h" —
+// used to show how long someone actually held the LOA role, not just the
+// dates they originally requested.
+function humanDuration(fromISO, toISO) {
+  const ms = new Date(toISO) - new Date(fromISO);
+  const totalMinutes = Math.max(0, Math.floor(ms / 60000));
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+
+  const parts = [];
+  if (days) parts.push(`${days}d`);
+  if (hours) parts.push(`${hours}h`);
+  if (!days && !hours) parts.push(`${minutes}m`);
+  return parts.join(' ');
+}
+
+module.exports = { parseDMY, formatDMY, humanDuration };
