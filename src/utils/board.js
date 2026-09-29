@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const storage = require('../storage');
+const { formatDMY } = require('./dates');
 
 function daysBetween(start, end) {
   const ms = new Date(end) - new Date(start);
@@ -18,7 +19,7 @@ function buildBoardEmbed(activeRequests) {
   for (const req of activeRequests) {
     embed.addFields({
       name: '\u200B',
-      value: `<@${req.userId}> — until **${req.endDate}** (approved by <@${req.reviewedBy}>)`,
+      value: `<@${req.userId}> — until **${formatDMY(req.endDate)}** (approved by <@${req.reviewedBy}>)`,
     });
   }
   return embed;
@@ -63,8 +64,8 @@ async function logApproval(guild, config, request, reviewerId) {
       { name: 'Staff Member', value: `<@${request.userId}>`, inline: true },
       { name: 'Approved By', value: `<@${reviewerId}>`, inline: true },
       { name: '\u200B', value: '\u200B', inline: true },
-      { name: 'Start Date', value: request.startDate, inline: true },
-      { name: 'End Date', value: request.endDate, inline: true },
+      { name: 'Start Date', value: formatDMY(request.startDate), inline: true },
+      { name: 'End Date', value: formatDMY(request.endDate), inline: true },
       { name: 'Duration', value: `${daysBetween(request.startDate, request.endDate)} day(s)`, inline: true },
       { name: 'Reason', value: request.reason },
     )
@@ -86,8 +87,8 @@ async function logCompletion(guild, config, request, endedEarly) {
       { name: 'Staff Member', value: `<@${request.userId}>`, inline: true },
       { name: 'Approved By', value: request.reviewedBy ? `<@${request.reviewedBy}>` : 'Unknown', inline: true },
       { name: '\u200B', value: '\u200B', inline: true },
-      { name: 'Start Date', value: request.startDate, inline: true },
-      { name: 'End Date', value: request.endDate, inline: true },
+      { name: 'Start Date', value: formatDMY(request.startDate), inline: true },
+      { name: 'End Date', value: formatDMY(request.endDate), inline: true },
       { name: 'Duration', value: `${daysBetween(request.startDate, request.endDate)} day(s)`, inline: true },
       { name: 'Reason', value: request.reason },
       {
@@ -100,4 +101,27 @@ async function logCompletion(guild, config, request, endedEarly) {
   await channel.send({ embeds: [embed] }).catch(() => null);
 }
 
-module.exports = { updateActiveBoard, logApproval, logCompletion };
+// One permanent, never-edited entry per denial — kept in the log channel, not the review channel.
+async function logDenial(guild, config, request, reviewerId) {
+  if (!config.logChannel) return;
+  const channel = await guild.channels.fetch(config.logChannel).catch(() => null);
+  if (!channel) return;
+
+  const embed = new EmbedBuilder()
+    .setTitle('❌ LOA Denied')
+    .setColor(0xe74c3c)
+    .addFields(
+      { name: 'Staff Member', value: `<@${request.userId}>`, inline: true },
+      { name: 'Denied By', value: `<@${reviewerId}>`, inline: true },
+      { name: '\u200B', value: '\u200B', inline: true },
+      { name: 'Start Date', value: formatDMY(request.startDate), inline: true },
+      { name: 'End Date', value: formatDMY(request.endDate), inline: true },
+      { name: '\u200B', value: '\u200B', inline: true },
+      { name: 'Reason', value: request.reason },
+    )
+    .setTimestamp();
+
+  await channel.send({ embeds: [embed] }).catch(() => null);
+}
+
+module.exports = { updateActiveBoard, logApproval, logDenial, logCompletion };

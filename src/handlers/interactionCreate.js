@@ -10,11 +10,8 @@ const {
 const storage = require('../storage');
 const { memberHasAnyRole } = require('../utils/permissions');
 const { buildSetupMessage } = require('../commands/loa-setup');
-const { updateActiveBoard, logApproval } = require('../utils/board');
-
-function isValidDate(str) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(str) && !Number.isNaN(new Date(str).getTime());
-}
+const { updateActiveBoard, logApproval, logDenial } = require('../utils/board');
+const { parseDMY, formatDMY } = require('../utils/dates');
 
 module.exports = async function interactionCreate(interaction, client) {
   try {
@@ -67,24 +64,28 @@ module.exports = async function interactionCreate(interaction, client) {
         });
       }
 
-      const modal = new ModalBuilder().setCustomId('loa_request_modal').setTitle('LOA Request');
+      const modal = new ModalBuilder().setCustomId('loa_request_modal').setTitle('📋 LOA Request — FPS LAB');
       const startInput = new TextInputBuilder()
         .setCustomId('start_date')
-        .setLabel('Start Date (YYYY-MM-DD)')
+        .setLabel('Start Date (DD/MM/YYYY)')
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder('2026-10-01')
+        .setPlaceholder('01/10/2026')
+        .setMinLength(10)
+        .setMaxLength(10)
         .setRequired(true);
       const endInput = new TextInputBuilder()
         .setCustomId('end_date')
-        .setLabel('End Date (YYYY-MM-DD)')
+        .setLabel('End Date (DD/MM/YYYY)')
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder('2026-10-08')
+        .setPlaceholder('08/10/2026')
+        .setMinLength(10)
+        .setMaxLength(10)
         .setRequired(true);
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Reason')
+        .setLabel('Reason for LOA')
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Why do you need this LOA?')
+        .setPlaceholder('e.g. Family emergency, medical, personal time')
         .setRequired(true);
 
       modal.addComponents(
@@ -97,17 +98,17 @@ module.exports = async function interactionCreate(interaction, client) {
 
     // ---- LOA request modal submission ----
     if (interaction.isModalSubmit() && interaction.customId === 'loa_request_modal') {
-      const startDate = interaction.fields.getTextInputValue('start_date').trim();
-      const endDate = interaction.fields.getTextInputValue('end_date').trim();
+      const startDate = parseDMY(interaction.fields.getTextInputValue('start_date'));
+      const endDate = parseDMY(interaction.fields.getTextInputValue('end_date'));
       const reason = interaction.fields.getTextInputValue('reason').trim();
 
-      if (!isValidDate(startDate) || !isValidDate(endDate)) {
+      if (!startDate || !endDate) {
         return interaction.reply({
-          content: '❌ Dates must be in `YYYY-MM-DD` format. Click **Request LOA** again and re-enter them.',
+          content: '❌ Dates must be real calendar dates in `DD/MM/YYYY` format (e.g. `01/10/2026`). Click **Request LOA** again and re-enter them.',
           ephemeral: true,
         });
       }
-      if (new Date(endDate) < new Date(startDate)) {
+      if (endDate < startDate) {
         return interaction.reply({
           content: "❌ End date can't be before the start date. Click **Request LOA** again to retry.",
           ephemeral: true,
@@ -118,7 +119,7 @@ module.exports = async function interactionCreate(interaction, client) {
       const request = {
         id: `${interaction.user.id}-${Date.now()}`,
         userId: interaction.user.id,
-        startDate,
+        startDate, // stored as ISO (YYYY-MM-DD) so sorting/expiry checks stay correct
         endDate,
         reason,
         status: 'pending',
@@ -132,8 +133,8 @@ module.exports = async function interactionCreate(interaction, client) {
           { name: 'Staff Member', value: `<@${interaction.user.id}>`, inline: true },
           { name: 'Status', value: '🟡 Pending', inline: true },
           { name: '\u200B', value: '\u200B', inline: true },
-          { name: 'Start Date', value: startDate, inline: true },
-          { name: 'End Date', value: endDate, inline: true },
+          { name: 'Start Date', value: formatDMY(startDate), inline: true },
+          { name: 'End Date', value: formatDMY(endDate), inline: true },
           { name: '\u200B', value: '\u200B', inline: true },
           { name: 'Reason', value: reason },
         )
@@ -198,23 +199,19 @@ module.exports = async function interactionCreate(interaction, client) {
         await interaction.deferUpdate();
         await interaction.message.delete().catch(() => null);
       } else {
-        const original = interaction.message.embeds[0];
-        const updatedEmbed = EmbedBuilder.from(original)
-          .setColor(0xe74c3c)
-          .spliceFields(1, 1, {
-            name: 'Status',
-            value: `🔴 Denied by <@${interaction.user.id}>`,
-            inline: true,
-          });
-        await interaction.update({ content: '', embeds: [updatedEmbed], components: [] });
+        const deniedRequest = storage.getRequest(interaction.guildId, requestId);
+        await logDenial(interaction.guild, config, deniedRequest, interaction.user.id);
+        // Denied requests are cleared out of the review channel entirely — the record now lives in the log channel.
+        await interaction.deferUpdate();
+        await interaction.message.delete().catch(() => null);
       }
 
       if (member) {
         member
           .send(
             isApprove
-              ? `✅ Your LOA request (${request.startDate} → ${request.endDate}) was **approved**. You've been given the LOA role.`
-              : `❌ Your LOA request (${request.startDate} → ${request.endDate}) was **denied**.`,
+              ? `✅ Your LOA request (${formatDMY(request.startDate)} → ${formatDMY(request.endDate)}) was **approved**. You've been given the LOA role.`
+              : `❌ Your LOA request (${formatDMY(request.startDate)} → ${formatDMY(request.endDate)}) was **denied**.`,
           )
           .catch(() => null); // ignore users with DMs closed
       }
